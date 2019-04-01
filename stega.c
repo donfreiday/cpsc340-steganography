@@ -18,8 +18,6 @@ typedef unsigned char u8;
  * Read file into buffer
  *******************************************************/
 u8 read_file(char *name, u8 **buf, int *size) {
-  *size = 0;
-
   // Open file
   int fd = 0;
   if ((fd = open(name, O_RDONLY, 0)) < 0) {
@@ -44,9 +42,6 @@ u8 read_file(char *name, u8 **buf, int *size) {
     printf("failed to allocate %d bytes: %s\n", *size, strerror(errno));
     return FALSE;
   }
-
-  // Zero buffer
-  memset(*buf, 0, *size);
 
   // Read file, print buffer
   if (read(fd, *buf, *size) < 0) {
@@ -131,7 +126,7 @@ void hide(char **argv) {
   }
 
   // Write bmp to new file
-  if (!write_file("stega.bmp", bmp_buf, bmp_size)) {
+  if (!write_file("out.bmp", bmp_buf, bmp_size)) {
     printf("Error writing BMP file\n");
   }
 

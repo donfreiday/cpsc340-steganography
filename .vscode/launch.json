@@ -11,8 +11,8 @@
             "program": "${workspaceRoot}/stega",
             "request": "launch",
             "cwd": "${workspaceRoot}",
-            //"args": ["hide", "Stega.txt", "Wien-2018.bmp"],
-            "args": ["show", "stega.bmp"],
+            "args": ["hide", "Stega.txt", "Wien-2018.bmp"],
+            //"args": ["show", "stega.bmp"],
             "externalConsole": false
         },
         {
