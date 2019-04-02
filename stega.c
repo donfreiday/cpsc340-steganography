@@ -81,15 +81,15 @@ u8 write_file(char *name, u8 *buf, int size) {
  * Hide text in bmp
  *******************************************************/
 void hide(char **argv) {
-  u8 *bmp_buf = NULL, *txt_buf = NULL;
+  u8 *bmp = NULL, *txt = NULL;
   int bmp_size, txt_size;
 
   // Load files into memory
-  if (!read_file(argv[2], &txt_buf, &txt_size)) {
+  if (!read_file(argv[2], &txt, &txt_size)) {
     printf("Error loading %s\n", argv[2]);
     return;
   }
-  if (!read_file(argv[3], &bmp_buf, &bmp_size)) {
+  if (!read_file(argv[3], &bmp, &bmp_size)) {
     printf("Error loading %s\n", argv[3]);
     return;
   }
@@ -107,10 +107,10 @@ void hide(char **argv) {
   for (int txt_idx = 0; txt_idx < txt_size; txt_idx++) {
     for (u8 pos = 0; pos < 8; pos++) {
       // Set LSB of BMP byte depending on bit at pos in text character
-      if (txt_buf[txt_idx] & (1 << pos))
-        bmp_buf[bmp_idx] |= 0x01; // 0000 0001
+      if (txt[txt_idx] & (1 << pos))
+        bmp[bmp_idx] |= 0x01; // 0000 0001
       else
-        bmp_buf[bmp_idx] &= 0xFE; // 1111 1110
+        bmp[bmp_idx] &= 0xFE; // 1111 1110
       bmp_idx++;
     }
   }
@@ -119,37 +119,37 @@ void hide(char **argv) {
   for (u8 pos = 0; pos < 8; pos++) {
     // Set LSB of BMP byte depending on bit at pos in ETX character
     if (ASCII_ETX & (1 << pos))
-      bmp_buf[bmp_idx] |= 0x01; // 0000 0001
+      bmp[bmp_idx] |= 0x01; // 0000 0001
     else
-      bmp_buf[bmp_idx] &= 0xFE; // 1111 1110
+      bmp[bmp_idx] &= 0xFE; // 1111 1110
     bmp_idx++;
   }
 
   // Write bmp to new file
-  if (!write_file("out.bmp", bmp_buf, bmp_size)) {
+  if (!write_file("out.bmp", bmp, bmp_size)) {
     printf("Error writing BMP file\n");
   }
 
   // Cleanup
-  free(bmp_buf);
-  free(txt_buf);
+  free(bmp);
+  free(txt);
 }
 
 /*******************************************************
  * Show hidden text in bmp
  *******************************************************/
 void show(char **argv) {
-  u8 *bmp_buf = NULL;
+  u8 *bmp = NULL;
   int bmp_size;
 
   // Load file into memory
-  if (!read_file(argv[2], &bmp_buf, &bmp_size)) {
+  if (!read_file(argv[2], &bmp, &bmp_size)) {
     printf("Error loading %s\n", argv[2]);
-    if (bmp_buf)
-      free(bmp_buf);
+    if (bmp)
+      free(bmp);
     return;
   }
-  
+
   // Each character is encoded as the LSB in a block of 8 RGB bytes.
   int bmp_idx = BMP_DATA_START;
   while (bmp_idx < bmp_size) {
@@ -157,7 +157,7 @@ void show(char **argv) {
     u8 c = 0;
     for (u8 pos = 0; pos < 8; pos++) {
       // Write LSB of BMP byte to bit at pos in character
-      if (bmp_buf[bmp_idx] & 0x01)
+      if (bmp[bmp_idx] & 0x01)
         c |= (1 << pos);
       bmp_idx++;
     }
@@ -168,7 +168,7 @@ void show(char **argv) {
   }
 
   // Clean up
-  free(bmp_buf);
+  free(bmp);
 }
 
 /*******************************************************
@@ -180,7 +180,8 @@ int main(int argc, char *argv[]) {
   else if (argc == 4 && strncmp(argv[1], "hide", 4) == 0)
     hide(argv);
   else
-    printf("Usage:\n stega hide <text file> <bmp file>\n stega show <bmp file>\n");
+    printf(
+        "Usage:\n stega hide <text file> <bmp file>\n stega show <bmp file>\n");
 
   return 0;
 }
