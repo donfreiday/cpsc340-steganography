@@ -1,3 +1,11 @@
+/**
+ * Don Freiday
+ * CPSC340 : Steganography
+ * Usage:
+ * stega hide <text file> <bmp file>
+ * stega show <bmp file>
+ **/
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -10,7 +18,8 @@
 #define TRUE 1
 #define FALSE 0
 #define BMP_DATA_START 54 // Skip header
-#define ASCII_ETX 0x03    // ASCII end of text
+#define ASCII_STX 0x02    // Start of text
+#define ASCII_ETX 0x03    // End of text
 
 typedef unsigned char u8;
 
@@ -78,10 +87,25 @@ u8 write_file(char *name, u8 *buf, int size) {
 }
 
 /*******************************************************
- * Hide text in bmp
+ * Hide character in LSB of 8bytes at offset in BMP
+ *******************************************************/
+void hideChar(u8* bmp, int* offset, u8 character) {
+  // Mark start of text with ASCII STX character
+  for (u8 pos = 0; pos < 8; pos++) {
+    // Set LSB of BMP byte depending on bit at pos in character
+    if (character & (1 << pos))
+      bmp[*offset] |= 0x01; // 0000 0001
+    else
+      bmp[*offset] &= 0xFE; // 1111 1110
+    (*offset)++;
+  }
+}
+
+/*******************************************************
+ * Hide text file in bmp file
  *******************************************************/
 void hide(char **argv) {
-  u8 *bmp = NULL, *txt = NULL;
+  u8* bmp = NULL, *txt = NULL;
   int bmp_size, txt_size;
 
   // Load files into memory
@@ -101,29 +125,19 @@ void hide(char **argv) {
     return;
   }
 
-  int bmp_idx = BMP_DATA_START;
+  // Skip header
+  int bmp_offset = BMP_DATA_START;
 
-  // Each character is encoded as the LSB in a block of 8 RGB bytes.
+  // Mark start of hidden text with ASCII STX character
+  hideChar(bmp, &bmp_offset, ASCII_STX);
+
+  // Encode each character from txt in bmp
   for (int txt_idx = 0; txt_idx < txt_size; txt_idx++) {
-    for (u8 pos = 0; pos < 8; pos++) {
-      // Set LSB of BMP byte depending on bit at pos in text character
-      if (txt[txt_idx] & (1 << pos))
-        bmp[bmp_idx] |= 0x01; // 0000 0001
-      else
-        bmp[bmp_idx] &= 0xFE; // 1111 1110
-      bmp_idx++;
-    }
+    hideChar(bmp, &bmp_offset, txt[txt_idx]);
   }
 
   // Mark end of text with ASCII ETX character
-  for (u8 pos = 0; pos < 8; pos++) {
-    // Set LSB of BMP byte depending on bit at pos in ETX character
-    if (ASCII_ETX & (1 << pos))
-      bmp[bmp_idx] |= 0x01; // 0000 0001
-    else
-      bmp[bmp_idx] &= 0xFE; // 1111 1110
-    bmp_idx++;
-  }
+  hideChar(bmp, &bmp_offset, ASCII_ETX);
 
   // Write bmp to new file
   if (!write_file("out.bmp", bmp, bmp_size)) {
@@ -133,6 +147,20 @@ void hide(char **argv) {
   // Cleanup
   free(bmp);
   free(txt);
+}
+
+/*******************************************************
+ * Get character from LSB of 8bytes at offset in BMP
+ *******************************************************/
+u8 decodeChar(u8* bmp, int* offset) {
+    u8 c = 0;
+    for (u8 pos = 0; pos < 8; pos++) {
+      // Write LSB of BMP byte to bit at pos in character
+      if (bmp[*offset] & 0x01)
+        c |= (1 << pos);
+      (*offset)++;
+    }
+    return c;
 }
 
 /*******************************************************
@@ -150,17 +178,18 @@ void show(char **argv) {
     return;
   }
 
-  // Each character is encoded as the LSB in a block of 8 RGB bytes.
-  int bmp_idx = BMP_DATA_START;
-  while (bmp_idx < bmp_size) {
-    // Rebuild character bit by bit
-    u8 c = 0;
-    for (u8 pos = 0; pos < 8; pos++) {
-      // Write LSB of BMP byte to bit at pos in character
-      if (bmp[bmp_idx] & 0x01)
-        c |= (1 << pos);
-      bmp_idx++;
-    }
+  // Skip header
+  int bmp_offset = BMP_DATA_START;
+
+  // Check for STX marker denoting hidden message
+  if(decodeChar(bmp, &bmp_offset) != ASCII_STX) {
+      free(bmp);
+      return;
+  }
+
+  // Decode until ETX reached
+  while (bmp_offset < bmp_size) {
+    u8 c = decodeChar(bmp, &bmp_offset);
     if (c == ASCII_ETX)
       break;
     if (c < 128) // Don't print non-ASCII values
