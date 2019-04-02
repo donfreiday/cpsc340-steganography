@@ -87,17 +87,17 @@ u8 write_file(char *name, u8 *buf, int size) {
 }
 
 /*******************************************************
- * Hide character in LSB of 8bytes at offset in BMP
+ * Encode character in LSB of 8bytes at offset in BMP
  *******************************************************/
-void hideChar(u8* bmp, int* offset, u8 character) {
-  // Mark start of text with ASCII STX character
+void encodeChar(u8* bmp, int* offset, u8 character) {
+  // For each bit in character
   for (u8 pos = 0; pos < 8; pos++) {
     // Set LSB of BMP byte depending on bit at pos in character
     if (character & (1 << pos))
       bmp[*offset] |= 0x01; // 0000 0001
     else
       bmp[*offset] &= 0xFE; // 1111 1110
-    (*offset)++;
+    (*offset)++; // Next BMP byte
   }
 }
 
@@ -150,15 +150,16 @@ void hide(char **argv) {
 }
 
 /*******************************************************
- * Get character from LSB of 8bytes at offset in BMP
+ * Decode character from LSB of 8bytes at offset in BMP
  *******************************************************/
 u8 decodeChar(u8* bmp, int* offset) {
     u8 c = 0;
+    // For each bit in character
     for (u8 pos = 0; pos < 8; pos++) {
       // Write LSB of BMP byte to bit at pos in character
       if (bmp[*offset] & 0x01)
         c |= (1 << pos);
-      (*offset)++;
+      (*offset)++; // Next byte
     }
     return c;
 }
