@@ -20,6 +20,7 @@
 #define BMP_DATA_START 54 // Skip header
 #define ASCII_STX 0x02    // Start of text
 #define ASCII_ETX 0x03    // End of text
+#define PRINT_NONASCII_CHARS 1
 
 typedef unsigned char u8;
 
@@ -129,15 +130,15 @@ void hide(char **argv) {
   int bmp_offset = BMP_DATA_START;
 
   // Mark start of hidden text with ASCII STX character
-  hideChar(bmp, &bmp_offset, ASCII_STX);
+  encodeChar(bmp, &bmp_offset, ASCII_STX);
 
   // Encode each character from txt in bmp
   for (int txt_idx = 0; txt_idx < txt_size; txt_idx++) {
-    hideChar(bmp, &bmp_offset, txt[txt_idx]);
+      encodeChar(bmp, &bmp_offset, txt[txt_idx]);
   }
 
   // Mark end of text with ASCII ETX character
-  hideChar(bmp, &bmp_offset, ASCII_ETX);
+  encodeChar(bmp, &bmp_offset, ASCII_ETX);
 
   // Write bmp to new file
   if (!write_file("out.bmp", bmp, bmp_size)) {
@@ -193,7 +194,7 @@ void show(char **argv) {
     u8 c = decodeChar(bmp, &bmp_offset);
     if (c == ASCII_ETX)
       break;
-    if (c < 128) // Don't print non-ASCII values
+    if (PRINT_NONASCII_CHARS || c < 128)
       printf("%c", c);
   }
 
