@@ -39,16 +39,19 @@ u8 read_file(char *name, u8 **buf, int *size) {
   *size = lseek(fd, 0, SEEK_END);
   if (*size < 0) {
     printf("file seek failed: %s\n", strerror(errno));
+    close(fd);
     return FALSE;
   }
   if (lseek(fd, 0, SEEK_SET) < 0) {
     printf("file seek failed: %s\n", strerror(errno));
+    close(fd);
     return FALSE;
   }
 
   // Allocate and initialize buffer
   *buf = malloc(sizeof(char) * *size);
   if (*buf == NULL) {
+    close(fd);
     printf("failed to allocate %d bytes: %s\n", *size, strerror(errno));
     return FALSE;
   }
@@ -56,6 +59,7 @@ u8 read_file(char *name, u8 **buf, int *size) {
   // Read file, print buffer
   if (read(fd, *buf, *size) < 0) {
     printf("file read failed: %s\n", strerror(errno));
+    close(fd);
     free(buf);
     return FALSE;
   }
@@ -79,6 +83,7 @@ u8 write_file(char *name, u8 *buf, int size) {
   // Write file
   if (write(fd, buf, size) < 0) {
     printf("file write failed: %s\n", strerror(errno));
+    close(fd);
     return FALSE;
   }
 
